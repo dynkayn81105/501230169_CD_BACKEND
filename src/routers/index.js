@@ -1,4 +1,4 @@
-import categoryRoute from "./categoryRoute.js"
+import categoryRoute from "./categoryRouter.js"
 export default function routers(app) {
     app.use("/categories",categoryRoute)
     app.get('/',(req,res)=>{

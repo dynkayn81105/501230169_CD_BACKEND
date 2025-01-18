@@ -13,6 +13,9 @@ app.set("views",__dirname + "/src/views")
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded())
 routers(app);
+app.get('/', (req, res) => {
+    res.render('pages/index');
+});
 app.listen(port, function() {
     console.log('http://localhost:' + port);
 });
