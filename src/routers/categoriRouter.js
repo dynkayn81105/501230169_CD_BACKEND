@@ -1,20 +1,22 @@
 import express from "express";
 import {
-  listCategori,
-  renderPagecreatecCategory,
-  createcCategory,
+  listCategory,
+  createCategory,
+  renderPageCreateCategory,
   renderPageUpdateCategory,
-  updateCategory,
+  UpdateCategory,
   renderPageDeleteCategory,
   deleteCategory
-} from "../controllers/categoriController.js";
+} from "../controllers/categoryController.js";
 const router = express.Router();
-router.get("/", listCategori);
 
-router.get("/create", renderPagecreatecCategory); //render ra from create
-router.post("/create", createcCategory);
-router.get("/update/:id", renderPageUpdateCategory); //render ra from create
-router.post("/update", updateCategory); //render ra from update
-router.get("/delete/:id", renderPageDeleteCategory); //render ra from create
-router.post("/delete",deleteCategory); //render ra from delete);
+router.get("/", listCategory);
+router.get("/create", renderPageCreateCategory);
+router.post("/create", createCategory);
+
+router.get("/update/:id", renderPageUpdateCategory);
+router.post("/update/:id", UpdateCategory);
+
+router.get("/delete/:id", renderPageDeleteCategory);
+router.post("/delete", deleteCategory);
 export default router;

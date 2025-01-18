@@ -1,113 +1,180 @@
-import categoriModel from "../models/categoriModel.js";
+import CategoryModel from "../models/categoryModel.js";
 import { ObjectId } from "mongodb";
-
-export async function listCategori(req, res) {
+import {removeVietnameseAccents} from "../comon/index.js"
+const sortObjects =[
+  {code: "name_ASC", name: "tên giảm dần"},
+  {code: "name_DESC", name: "tên tăng dần"},
+  {code: "code_ASC", name: "mã giảm dần"},
+  {code: "code_DESC", name: "mã tăng dần"},
+]
+export async function listCategory(req, res) {
+  const search = req.query?.search
+  const pageSize = !!req.query?.pageSize ? parseInt(req.query.pageSize) : 5
+  const page = !!req.query?.page ? parseInt(req.query.page) : 1
+  const skip = (page-1) *pageSize
+  let sort = req.query.sort ? req.query.sort : null;
+  // console.log({pageSize, skip});
+  
+  let filters={
+    deleteAT: null
+  }
+  if (search && search.length>0) {
+    filters.searchString = {$regex: removeVietnameseAccents(search), $options: 'i'}
+  }
+  if(!sort){
+    sort = {createAT: -1}
+  }
   try {
-    const categories = await categoriModel.find({deleteAt:null});
+    const countcategories = await CategoryModel.countDocuments(filters);
+    const categories = await CategoryModel.find(filters).skip(skip).limit(pageSize).sort(sort)
+    // res.json(categories)
     res.render("pages/categories/list", {
       title: "Categories",
       categories: categories,
+      countPagination: Math.ceil(countcategories / pageSize),
+      pageSize,
+      page,
+      sort,
+      sortObjects
     });
   } catch (error) {
     console.log(error);
-    res.send("get list categories failed");
+    res.send("hien tai khong co san pham nao!");
   }
 }
-export async function renderPagecreatecCategory(req, res) {
-  try {
-    res.render("pages/categories/form", {
-      title: " Create Categories",
-      mode: "create",
-      category:{}
-    });
-  } catch (error) {
-    console.log(error);
-    res.send("Lỗi khi render trang tạo danh mục");
-  }
+
+export async function renderPageCreateCategory(req, res) {
+  res.render("pages/categories/form", {
+    title: "Create Categories",
+    mode: "create",
+    category:{},
+    err:{},
+  });
 }
-export async function createcCategory(req, res) {
-  const { code, name, image } = req.body;
+
+export async function createCategory(req, res) {
+  const data = req.body;
   try {
-    await categoriModel.create({
-      code,
-      name,
-      image,
-      createAt: new Date(),
+    const category = await CategoryModel.findOne({ code: data.code, deleteAt: null });
+    if (category) {
+      throw ("code");
+    }
+    await CategoryModel.create({
+      ...data,
+      createAT: new Date(),
     });
     res.redirect("/categories");
   } catch (error) {
-    console.log(error);
-    res.send("Tạo lỗi sản phẩm k thành công");
+    console.log("error", error);
+    let err = {};
+    if (error === "code") {
+      err.code = "mã sản phẩm này đã tồn tại";
+    }
+    if (error.name === "ValidationError") {
+      Object.keys(error.errors).forEach(key => {
+        err[key] = error.errors[key].message;
+      });
+    }
+    res.render("pages/categories/form", {
+      title: "Create Categories",
+      mode: "create",
+      category: { ...data },
+      err
+    });
   }
 }
 
 export async function renderPageUpdateCategory(req, res) {
-  const { id } = req.params;
   try {
-    const category = await categoriModel.findOne({ _id: new ObjectId(id),deleteAt:null });
-    if (category) {
-      res.render("pages/categories/form", {
-        title: " Create Categories",
-        mode: "update",
-        category: category
-      });
-    } else {
-      res.send("Không tìm thấy sản phẩm");
+    const {id} = req.params;
+    const category = await CategoryModel.findOne({_id: new ObjectId(id), deleteAT: null});
+    if(category){
+        res.render("pages/categories/form", {
+            title: "Create Categories",
+            mode: "Update",
+            category: category,
+            err:{},
+          });
+    }else{
+        res.send("Hiện không có sản phẩm nào phù hợp");
     }
   } catch (error) {
-    console.log(error);
-    res.send("Lỗi khi render trang cập nhật danh mục");
+    res.send("trang web này không tồn tại");
   }
+
 }
-export async function updateCategory(req, res) {
-  const { code, name, image,id} = req.body;
+
+export async function UpdateCategory(req, res) {
+  const {  ...data } = req.body;
+  const {id} = req.params;
   try {
-    await categoriModel.updateOne(
-      { _id: new ObjectId(id) },
+    const category = await CategoryModel.findOne({code:data.code, deleteAT: null});
+    if (category) {
+      throw( "code");
+    }
+    await CategoryModel.updateOne(
       {
-        code,
-        name,
-        image,
-        updatedAt: new Date(),
+        _id: new ObjectId(id),
+      },
+      {
+        ...data,
+        updateAT: new Date(),
       }
     );
     res.redirect("/categories");
   } catch (error) {
-    console.log(error);
-    res.send("Tạo lỗi sản phẩm không thành công");
+    console.log("error",error);
+    let err = {};
+    if (error === "code") {
+      err.code = "mã sản phẩm này đã tồn tại";
+    }
+    if (error.name === "ValidationError") {
+      Object.keys(error.errors).forEach(key => {
+        err[key] = error.errors[key].message;
+      });
+    }
+    res.render("pages/categories/form", {
+      title: "update Categories",
+      mode: "update",
+      category: { ...data, _id: id },
+      err
+    });
   }
 }
 
 export async function renderPageDeleteCategory(req, res) {
   try {
-    const { id } = req.params;
-    const category = await categoriModel.findOne({ _id: new ObjectId(id),deleteAt:null });
-    if (category) {
-      res.render("pages/categories/form", {
-        title: " Create Categories",
-        mode: "Delete",
-        category: category
-      });
-    } else {
-      res.send("Không tìm thấy sản phẩm");
+    const {id} = req.params;
+    const category = await CategoryModel.findOne({_id: new ObjectId(id), deleteAT: null});
+    if(category){
+        res.render("pages/categories/form", {
+            title: "Delete Categories",
+            mode: "Delete",
+            category: category,
+            err:{},
+          });
+    }else{
+        res.send("Hiện không có sản phẩm nào phù hợp");
     }
   } catch (error) {
-    console.log(error);
-    res.send("Trang web này không tồn tại");
+      console.log(error);
+      res.send("trang này không tồn tại");
   }
 }
+
 export async function deleteCategory(req, res) {
   const { id } = req.body;
   try {
-    await categoriModel.updateOne(
-      { _id: new ObjectId(id) },
-      { 
-        deleteAt: new Date()
-
-       })
-    res.redirect("/categories")
-  } catch (error) {
-    console.log(error)
-    res.send("Xóa sản phẩm không thành công")
-  }
+    await CategoryModel.deleteOne({
+      _id: new ObjectId(id),
+    },
+    {
+      deleteAT: new Date(),
+    }
+  );
+  res.redirect("/categories");
+} catch (error) {
+  console.log(error);
+  res.send("xóa sản phẩm không thành công!");
+}
 }

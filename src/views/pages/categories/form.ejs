@@ -5,17 +5,18 @@
 	<div class="wrapper">
 		<%- include('../../layouts/main-header'); %>
 			<%- include('../../layouts/side-bar'); %>
-			
 			<div class="main-panel">
 				<%- include('../../components/categories/form'); %>
 				<%- include('../../layouts/footer'); %>
 			</div>
 		</div>
-
-	<!-- Modal -->
-	
-
-    
+	</div>
 </body>
 <%- include('../../layouts/script/main'); %>
+<script>
+	const mode = '<%=mode%>%'
+	if (mode === "Delete") {
+		$(".categoryInput").attr("disabled", "dissable");
+	}
+</script>
 </html>
